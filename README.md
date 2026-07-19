@@ -18,7 +18,15 @@ Opus 4.8 | 84k/1m tokens (8%) | $2.41 | 3 sessions
 
 ## Install
 
-### Option A — one command
+### Option A — one line, no clone
+
+`install.sh` is self-contained (it embeds every file it installs), so you can pipe it straight from GitHub:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/guptesachin/claude-statusline/main/install.sh | bash
+```
+
+Or, if you've already cloned the repo:
 
 ```bash
 git clone https://github.com/guptesachin/claude-statusline.git
@@ -26,7 +34,7 @@ cd claude-statusline
 ./install.sh
 ```
 
-The installer copies `statusline.sh` to `~/.claude/statusline.sh`, makes it executable, and adds the `statusLine` block to `~/.claude/settings.json` (backing the file up first). It will **not** overwrite an existing `statusLine` setting without asking.
+The installer writes `statusline.sh`, `my-usd.sh`, and the `/my-usd` command into `~/.claude/`, makes the scripts executable, and adds the `statusLine` block to `~/.claude/settings.json` (backing the file up first). It will **not** overwrite an existing `statusLine` setting without asking, and re-running it is safe.
 
 ### Option B — manual
 
@@ -100,6 +108,16 @@ remove, or reorder segments. For example, to append the current directory:
 ```bash
 CWD=$(echo "$DATA" | jq -r '.cwd // ""')
 echo "${MODEL} | ${USED_K}k/${TOTAL_M}m tokens (${CTX_PCT}%) | \$${COST} | ${RUNNING} sessions | ${CWD##*/}"
+```
+
+## Contributing
+
+`install.sh` is **generated** — it embeds the current contents of `statusline.sh`,
+`my-usd.sh`, and `commands/my-usd.md` as heredocs. Don't edit `install.sh` by hand.
+After changing any of those source files, regenerate it:
+
+```bash
+./build-install.sh
 ```
 
 ## License
