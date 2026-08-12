@@ -64,7 +64,7 @@ function h(n,  u,i) { split(",k,M,B,T", u, ",")
   t=$2; m=$3; iin=$4; out=$5; cw=$6; cr=$7; sid=$8; proj=$9
   tot=iin+out+cw+cr; age=now-t
   if (age<=86400)   T24+=tot
-  if (age<=604800)  T7+=tot
+  if (age<=604800)  { T7+=tot; CW7+=cw; CR7+=cr }
   if (age<=2592000) T30+=tot
   ALL+=tot; IN+=iin; OUT+=out; CW+=cw; CR+=cr
   M[m]+=tot; MR[m]++; MI[m]+=iin; MO[m]+=out; MW[m]+=cw; MC[m]+=cr
@@ -84,11 +84,18 @@ END {
   printf "Last 7 days     : %s\n", h(T7)
   printf "Last 30 days    : %s\n", h(T30)
   printf "All-time        : %s\n", h(ALL)
+  printf "Token split     : %s in / %s out / %s cache-w / %s cache-r\n", h(IN), h(OUT), h(CW), h(CR)
   # --- derived efficiency metric ------------------------------------------
-  # The one number a reader looks at first. Swap this for whichever signal you
-  # actually want: CR/(CR+CW) is a truer cache hit rate, OUT/n is average work
-  # per turn, ALL/length(S) is average tokens per session.
-  printf "Cache reads     : %.1f%% of all input tokens\n", 100*CR/(IN+CW+CR)
+  # Cache reuse: how many times the average cached token got read back. This
+  # is deliberately NOT a hit-rate percentage — reads so dominate writes that
+  # every percentage formulation pins at 97-98% and never moves. The ratio has
+  # real spread (34x all-time vs 51x over a busy week), so it can actually tell
+  # a good week from a bad one. Higher = context is being amortized further.
+  if (CW > 0) {
+    line = sprintf("Cache reuse     : %.1fx all-time", CR/CW)
+    if (CW7 > 0) line = line sprintf(", %.1fx last 7d", CR7/CW7)
+    print line
+  }
 
   printf "\n=== Tokens by model (all-time) ===\n"
   printf "%9s %6s %9s %9s %9s %10s  %s\n","TOTAL","REQS","IN","OUT","CACHE_W","CACHE_R","MODEL"

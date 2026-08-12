@@ -107,8 +107,9 @@ Sessions        : 116
 Last 24 hours   : 195.83M
 Last 7 days     : 1.26B
 Last 30 days    : 2.67B
-All-time        : 4.95B
-Cache reads     : 97.1% of all input tokens
+All-time        : 4.96B
+Token split     : 1.67M in / 21.69M out / 139.64M cache-w / 4.80B cache-r
+Cache reuse     : 34.4x all-time, 51.5x last 7d
 
 === Tokens by model (all-time) ===
     TOTAL   REQS        IN       OUT   CACHE_W    CACHE_R  MODEL
@@ -126,6 +127,12 @@ Cache reads     : 97.1% of all input tokens
 
 Inside Claude Code, run it as the **`/my-tokens`** slash command. It takes a
 couple of seconds — it rescans every transcript on disk each run, no cache.
+
+**Cache reuse** is how many times the average cached token was read back, all-time
+versus the last 7 days. It is deliberately not a hit-rate percentage: reads so
+dominate writes that every percentage formulation pins at 97-98% and never
+moves, which tells you nothing. The ratio has real spread, so a busy week of
+long sessions visibly separates from a week of short ones.
 
 > **Token volume is not proportional to dollars.** Cache reads are ~97% of the
 > volume for a typical Claude Code user and are billed at a fraction of fresh
