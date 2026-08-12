@@ -6,7 +6,8 @@
 #   - all-time and rolling-window estimated spend
 #   - a spend-by-model breakdown
 #   - your most recent sessions
-#   - a budget status line (see budget_status() below — your call to define)
+#
+# For token counts rather than dollars, see my-tokens.sh (/my-tokens).
 #
 # NOTE: cost_usd is Claude Code's *estimate* of API-equivalent cost. On a
 # Pro/Max subscription you don't pay this directly; treat it as a usage signal.
@@ -35,7 +36,7 @@ jq -rs --argjson now "$NOW" '
   def usd: "$" + (.*100|round/100|tostring);
   # NOTE: cost is the reliable per-session cumulative metric. The token fields
   # in these logs are point-in-time context snapshots, NOT cumulative usage, so
-  # we do not sum them here — see README for the real token-usage source.
+  # we do not sum them here — run /my-tokens for real cumulative token usage.
   "Sessions logged : \(length)",
   "Last 24 hours   : \(since(86400)   | map(.cost_usd) | add // 0 | usd)",
   "Last 7 days     : \(since(604800)  | map(.cost_usd) | add // 0 | usd)",

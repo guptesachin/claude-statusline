@@ -34,7 +34,7 @@ cd claude-statusline
 ./install.sh
 ```
 
-The installer writes `statusline.sh`, `my-usd.sh`, and the `/my-usd` command into `~/.claude/`, makes the scripts executable, and adds the `statusLine` block to `~/.claude/settings.json` (backing the file up first). It will **not** overwrite an existing `statusLine` setting without asking, and re-running it is safe.
+The installer writes `statusline.sh`, `my-usd.sh`, `my-tokens.sh`, and the `/my-usd` and `/my-tokens` commands into `~/.claude/`, makes the scripts executable, and adds the `statusLine` block to `~/.claude/settings.json` (backing the file up first). It will **not** overwrite an existing `statusLine` setting without asking, and re-running it is safe.
 
 ### Option B — manual
 
@@ -89,6 +89,71 @@ Inside Claude Code you can run it as the **`/my-usd`** slash command (installed 
 If you only want the status bar and not the logging, delete the logging block
 in `statusline.sh` (it's clearly marked).
 
+## Bonus: token usage (`/my-tokens`)
+
+`/my-usd` answers *what did this cost*. `/my-tokens` answers *where did the
+tokens go* — and it reads a completely different data source to do it.
+
+The session logs above only carry **context-window snapshots** (how full the
+window was at the last refresh). Those are not cumulative and must not be
+summed. Real token counts live in Claude Code's session transcripts under
+`~/.claude/projects/**/*.jsonl`, which `my-tokens.sh` reads directly:
+
+```
+$ ~/.claude/my-tokens.sh
+=== Claude Code token usage ===
+Requests logged : 19550
+Sessions        : 116
+Last 24 hours   : 195.83M
+Last 7 days     : 1.26B
+Last 30 days    : 2.67B
+All-time        : 4.95B
+Cache reads     : 97.1% of all input tokens
+
+=== Tokens by model (all-time) ===
+    TOTAL   REQS        IN       OUT   CACHE_W    CACHE_R  MODEL
+    1.72B   6026    47.94k     4.63M    32.68M      1.68B  claude-opus-5
+    1.31B   5096     1.17M     8.77M    47.76M      1.25B  claude-opus-4-8
+    1.03B   3397   141.80k     6.27M    31.18M    991.18M  claude-opus-4-7
+...
+
+=== 10 most recent sessions ===
+    TOTAL  WHEN     PROJECT
+    1.79M  0h ago   claude-statusline
+  170.52M  4h ago   my-api-service
+...
+```
+
+Inside Claude Code, run it as the **`/my-tokens`** slash command. It takes a
+couple of seconds — it rescans every transcript on disk each run, no cache.
+
+> **Token volume is not proportional to dollars.** Cache reads are ~97% of the
+> volume for a typical Claude Code user and are billed at a fraction of fresh
+> input, so a big token number is not a big bill. Use `/my-usd` for spend.
+
+Two more differences from `/my-usd`:
+
+- **Coverage.** `/my-tokens` sees every transcript still on disk, including
+  sessions from before you installed the status line. `/my-usd` only sees
+  sessions run *after* installation. Conversely, transcripts are subject to
+  Claude Code's own cleanup, so old sessions can age out of `/my-tokens` while
+  their spend lives on in `/my-usd`.
+- **Model names.** `/my-usd` shows display names (`Opus 5 (1M context)`);
+  `/my-tokens` shows API model IDs (`claude-opus-5`). Transcripts don't record
+  the 1M-context marker, so the two model tables can't be joined reliably —
+  which is also why `/my-tokens` has no price table and reports no dollars.
+
+### If you write your own transcript tooling
+
+Claude Code writes **one JSONL record per content block**, so a single response
+containing thinking + text + a tool call becomes three records sharing one
+`requestId` and one byte-identical `usage` object. Summing them naively
+inflates totals by roughly **2.15x**. `my-tokens.sh` keys on `requestId` so
+each API response counts once. Two smaller traps it also handles: transcripts
+nest in three different directory shapes (use `find`, not a fixed-depth glob),
+and `<synthetic>` records are local API-error placeholders that should be
+skipped.
+
 ## How it works
 
 Claude Code pipes a JSON object describing the current session into your status
@@ -113,7 +178,8 @@ echo "${MODEL} | ${USED_K}k/${TOTAL_M}m tokens (${CTX_PCT}%) | \$${COST} | ${RUN
 ## Contributing
 
 `install.sh` is **generated** — it embeds the current contents of `statusline.sh`,
-`my-usd.sh`, and `commands/my-usd.md` as heredocs. Don't edit `install.sh` by hand.
+`my-usd.sh`, `my-tokens.sh`, `commands/my-usd.md`, and `commands/my-tokens.md` as
+heredocs. Don't edit `install.sh` by hand.
 After changing any of those source files, regenerate it:
 
 ```bash
